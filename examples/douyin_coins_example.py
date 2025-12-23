@@ -26,28 +26,27 @@ def example_basic_coin_earning():
         lang="cn"
     )
     
-    # Configure the agent
+    # Configure the agent with Douyin coins custom prompt
+    # ✅ FIXED: Pass custom prompt to AgentConfig during initialization
     agent_config = AgentConfig(
-        max_steps=50,
+        max_steps=150,
         verbose=True,
         lang="cn",
-        auto_cleanup_screenshots=True
+        auto_cleanup_screenshots=True,
+        system_prompt=get_douyin_coins_prompt()  # Custom prompt passed here
     )
     
-    # Create the agent with Douyin coins prompt
+    # Create the agent
     agent = PhoneAgent(
         model_config=model_config,
         agent_config=agent_config,
     )
     
-    # Override the system prompt with Douyin coins specific prompt
-    agent._system_prompt = get_douyin_coins_prompt()
-    
     # Task description
-    task = "打开抖音，浏览推荐视频流，每个视频观看至少3-5秒。同时完成赚金币任务，目标是获得至少100金币。"
+    task = "打开抖音极速版，浏览推荐视频流，每个视频观看至少3-5秒。同时完成赚金币任务，目标是获得至少100金币。"
     
     print("=" * 60)
-    print("抖音赚金币任务开始")
+    print("抖音极速版赚金币任务开始")
     print("=" * 60)
     print(f"任务: {task}\n")
     
@@ -87,12 +86,14 @@ def example_with_callbacks():
         lang="cn"
     )
     
-    # Configure the agent
+    # Configure the agent with Douyin coins custom prompt
+    # ✅ FIXED: Pass custom prompt to AgentConfig during initialization
     agent_config = AgentConfig(
         max_steps=100,
         verbose=True,
         lang="cn",
-        auto_cleanup_screenshots=False  # Keep screenshots for debugging
+        auto_cleanup_screenshots=False,  # Keep screenshots for debugging
+        system_prompt=get_douyin_coins_prompt()  # Custom prompt passed here
     )
     
     # Create the agent
@@ -102,9 +103,6 @@ def example_with_callbacks():
         confirmation_callback=confirmation_callback,
         takeover_callback=takeover_callback
     )
-    
-    # Override the system prompt
-    agent._system_prompt = get_douyin_coins_prompt()
     
     # Task: Advanced coin earning with multiple strategies
     task = """
