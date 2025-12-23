@@ -55,6 +55,26 @@ Thumbs.db
 /tmp/
 screenshots/
 
+# Local documentation (auto-generated, not tracked)
+docs/
+docs_local/
+*.md.local
+
+# Environment and configuration
+.env
+.env.local
+.env.example
+litellm_config.yaml
+
+# Temporary scripts (development helpers)
+*.ps1
+temp_*.ps1
+
+# Temporary test files (generated during testing)
+*_test.py
+test_*.py
+*_debug.*
+
 # Keep old files during transition
 call_model.py
 app_package_name.py

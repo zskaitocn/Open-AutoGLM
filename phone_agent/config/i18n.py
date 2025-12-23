@@ -23,6 +23,12 @@ MESSAGES_ZH = {
     "time_to_first_token": "首 Token 延迟 (TTFT)",
     "time_to_thinking_end": "思考完成延迟",
     "total_inference_time": "总推理时间",
+    # Cleanup messages
+    "cleanup_checking_stale": "检查是否有残留文件...",
+    "cleanup_success": "截图文件清理成功",
+    "cleanup_failed": "截图清理失败",
+    "cleanup_retrying": "清理失败，正在重试...",
+    "cleanup_stale_removed": "移除了 %d 小时前的残留文件",
 }
 
 # English messages
@@ -48,6 +54,12 @@ MESSAGES_EN = {
     "time_to_first_token": "Time to First Token (TTFT)",
     "time_to_thinking_end": "Time to Thinking End",
     "total_inference_time": "Total Inference Time",
+    # Cleanup messages
+    "cleanup_checking_stale": "Checking for stale files...",
+    "cleanup_success": "Screenshot cleanup successful",
+    "cleanup_failed": "Screenshot cleanup failed",
+    "cleanup_retrying": "Cleanup failed, retrying...",
+    "cleanup_stale_removed": "Removed stale files from %d hours ago",
 }
 
 

@@ -3,7 +3,7 @@
 import json
 import traceback
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 from phone_agent.actions import ActionHandler
 from phone_agent.actions.handler import do, finish, parse_action
@@ -11,6 +11,9 @@ from phone_agent.adb import get_current_app, get_screenshot
 from phone_agent.config import get_messages, get_system_prompt
 from phone_agent.model import ModelClient, ModelConfig
 from phone_agent.model.client import MessageBuilder
+
+if TYPE_CHECKING:
+    from phone_agent.adb.screenshot import Screenshot
 
 
 @dataclass
@@ -22,6 +25,7 @@ class AgentConfig:
     lang: str = "cn"
     system_prompt: str | None = None
     verbose: bool = True
+    auto_cleanup_screenshots: bool = True
 
     def __post_init__(self):
         if self.system_prompt is None:
@@ -91,23 +95,32 @@ class PhoneAgent:
         Returns:
             Final message from the agent.
         """
-        self._context = []
-        self._step_count = 0
+        try:
+            # Tier 1: Startup protection - check for and clean stale files
+            if self.agent_config.auto_cleanup_screenshots:
+                self._cleanup_stale_files()
+            
+            self._context = []
+            self._step_count = 0
 
-        # First step with user prompt
-        result = self._execute_step(task, is_first=True)
-
-        if result.finished:
-            return result.message or "Task completed"
-
-        # Continue until finished or max steps reached
-        while self._step_count < self.agent_config.max_steps:
-            result = self._execute_step(is_first=False)
+            # First step with user prompt
+            result = self._execute_step(task, is_first=True)
 
             if result.finished:
                 return result.message or "Task completed"
 
-        return "Max steps reached"
+            # Continue until finished or max steps reached
+            while self._step_count < self.agent_config.max_steps:
+                result = self._execute_step(is_first=False)
+
+                if result.finished:
+                    return result.message or "Task completed"
+
+            return "Max steps reached"
+        finally:
+            # Tier 3: Final cleanup - ensure files are deleted
+            if self.agent_config.auto_cleanup_screenshots:
+                self._cleanup_device_screenshots()
 
     def step(self, task: str | None = None) -> StepResult:
         """
@@ -133,6 +146,68 @@ class PhoneAgent:
         self._context = []
         self._step_count = 0
 
+    def _cleanup_device_screenshots(self) -> None:
+        """
+        Clean up temporary screenshot files on the device with retry logic.
+        
+        Features:
+        - Automatic retry with exponential backoff
+        - Verification of cleanup success
+        - Detailed error reporting and logging
+        - Multi-device support (if device_id is None)
+        """
+        try:
+            from phone_agent.adb.cleanup import ScreenshotCleanupManager
+            
+            manager = ScreenshotCleanupManager(verbose=self.agent_config.verbose)
+            result = manager.cleanup(self.agent_config.device_id)
+            
+            if not result.success:
+                # Log the failure with details
+                if self.agent_config.verbose:
+                    print(f"⚠️  Cleanup failed: {result.message} (Error type: {result.error_type})")
+            elif self.agent_config.verbose:
+                print("✅ Device screenshots cleaned up")
+        
+        except Exception as e:
+            # Silent failure - log but don't crash
+            if self.agent_config.verbose:
+                print(f"⚠️  Failed to cleanup device screenshots: {e}")
+    
+    def _cleanup_stale_files(self, max_age_hours: int = 24) -> None:
+        """
+        Check for and clean up stale screenshot files from previous failed attempts.
+        
+        This is Tier 1 protection: runs at the start of each task to recover from
+        previous cleanup failures.
+        
+        Args:
+            max_age_hours: Only clean files older than this many hours (default: 24).
+        """
+        try:
+            from phone_agent.adb.cleanup import ScreenshotCleanupManager
+            
+            manager = ScreenshotCleanupManager(verbose=False)  # Quiet mode
+            
+            # Check file info
+            file_info = manager.get_file_info(self.agent_config.device_id)
+            
+            if file_info.get("exists"):
+                # File exists - check if it's stale
+                result = manager.cleanup_stale_files(
+                    device_id=self.agent_config.device_id,
+                    max_age_hours=max_age_hours,
+                )
+                
+                if self.agent_config.verbose and result.success:
+                    if "skipping" not in result.message:
+                        print(f"🧹 {result.message}")
+        
+        except Exception as e:
+            # Silent failure in startup protection - don't interrupt task
+            if self.agent_config.verbose:
+                print(f"⚠️  Failed to check for stale files: {e}")
+
     def _execute_step(
         self, user_prompt: str | None = None, is_first: bool = False
     ) -> StepResult:
@@ -142,6 +217,18 @@ class PhoneAgent:
         # Capture current screen state
         screenshot = get_screenshot(self.agent_config.device_id)
         current_app = get_current_app(self.agent_config.device_id)
+
+        # If we got a black/fallback screenshot on first step, try Home to get to known state
+        if (screenshot.is_sensitive or self._is_black_image(screenshot)) and is_first:
+            if self.agent_config.verbose:
+                print("⚠️  Detected black screen on first step, executing Home to reset...")
+            # Execute Home action silently to get to a known state
+            from phone_agent.adb import home
+            home(self.agent_config.device_id)
+            import time
+            time.sleep(1)
+            # Retry the step
+            return self._execute_step(user_prompt, is_first)
 
         # Build messages
         if is_first:
@@ -250,3 +337,12 @@ class PhoneAgent:
     def step_count(self) -> int:
         """Get the current step count."""
         return self._step_count
+    @staticmethod
+    def _is_black_image(screenshot: "Screenshot") -> bool:
+        """Check if a screenshot appears to be all black (failed screenshot)."""
+        # Check if it's a fallback image by looking at base64 properties
+        # Black images are typically much smaller than real screenshots
+        if not screenshot.base64_data:
+            return True
+        # If the base64 length is very small, it's likely a black placeholder
+        return len(screenshot.base64_data) < 5000

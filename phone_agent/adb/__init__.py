@@ -1,5 +1,6 @@
 """ADB utilities for Android device interaction."""
 
+from phone_agent.adb.cleanup import ScreenshotCleanupManager, CleanupResult
 from phone_agent.adb.connection import (
     ADBConnection,
     ConnectionType,
@@ -23,11 +24,14 @@ from phone_agent.adb.input import (
     restore_keyboard,
     type_text,
 )
-from phone_agent.adb.screenshot import get_screenshot
+from phone_agent.adb.screenshot import cleanup_device_screenshots, get_screenshot
 
 __all__ = [
-    # Screenshot
+    # Screenshot cleanup
     "get_screenshot",
+    "cleanup_device_screenshots",
+    "ScreenshotCleanupManager",
+    "CleanupResult",
     # Input
     "type_text",
     "clear_text",
