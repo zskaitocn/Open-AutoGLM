@@ -33,6 +33,7 @@ APP_PACKAGES: dict[str, str] = {
     # Video & Entertainment
     "bilibili": "tv.danmaku.bili",
     "抖音": "com.ss.android.ugc.aweme",
+    "抖音极速版": "com.ss.android.lite",
     "快手": "com.smile.gifmaker",
     "腾讯视频": "com.tencent.qqlive",
     "爱奇艺": "com.qiyi.video",

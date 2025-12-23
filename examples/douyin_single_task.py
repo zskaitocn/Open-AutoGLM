@@ -51,7 +51,7 @@ def run_single_task(task_type: str, task_description: str = ""):
     
     # Configure the agent with FOCUSED, SIMPLIFIED prompt
     agent_config = AgentConfig(
-        max_steps=30,  # 减少步数，专注于单个任务
+        max_steps=150,  # 减少步数，专注于单个任务
         verbose=True,
         lang="cn",
         auto_cleanup_screenshots=True,
@@ -67,7 +67,7 @@ def run_single_task(task_type: str, task_description: str = ""):
     # Prepare the task description
     task_descriptions = {
         "watch_video": "观看抖音推荐视频，完整播放至少3个视频。不要提前退出。",
-        "watch_ad": "进入任务中心，找到广告任务，观看完整广告。重要：必须等到广告完全播放完再关闭，否则拿不到金币！",
+        "watch_ad": "进入任务中心，找到广告任务，观看完整广告。重要：必须等到广告完全播放完出现领取成功再关闭，否则拿不到金币!出现弹窗时，点击领取奖励,禁止点击坚持退出。",
         "daily_checkin": "每日签到任务。进入我的页面，点击签到按钮。",
         "simple_task": task_description or "完成一个简单的互动任务（点赞或评论）。",
         "navigate_to_earn": "进入抖音极速版的赚金币功能页面。",
